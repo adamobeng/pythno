@@ -11,12 +11,16 @@ expr << op + Literal('+') + operand + operand + cp
 rule = OneOrMore(expr)
 
 integer_literal = Word(nums)
-expr = op + Literal('+') + integer_literal + integer_literal + cp
-rule = OneOrMore(expr)
+binary_operator = Or([Literal('+'), Literal('-'), Literal('/'), Literal('*')])
+binary_expression = binary_operator + integer_literal + integer_literal
+expr = binary_expression
+pexpr = op + expr + cp
+rule = OneOrMore(pexpr)
 
 
 test_strings = (
     '(+ 1 2)',
+    '(- 1 2)',
     '(+ 1 2',
     '+ 1 2)',
     '+ 1 a)',
@@ -25,9 +29,18 @@ test_strings = (
 def parse(s):
     return rule.parseString(s)
 
+OPERATORS = {
+        '+' : lambda x, y: int(x)+int(y),
+        '-' : lambda x, y: int(x)-int(y),
+        '/' : lambda x, y: int(x)/int(y),
+        '*' : lambda x, y: int(x)*int(y),
+}
 def peval(s):
     parsed = parse(s)
-    return parsed
+    op, one, two = parsed
+    result = OPERATORS[op](one, two)
+    return result
+peval(test_strings[1])
 
 def parse_fix(s):
     print 'parsing', s
