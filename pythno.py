@@ -10,6 +10,7 @@ import ast
 import operator as pyoperator
 import subprocess
 import os.path
+import sys
 
 def cowsay(text):
     if os.path.exists('python.cow'):
@@ -107,11 +108,18 @@ def eval_(s, env=global_env):
                         return env[n]
         elif s[0] == 'define':
             _, var, exp = s
-            env[var] = eval_(exp, env)
+            val = eval_(exp, env)
+            env[var] = val
+            return val
         else:
             proc = eval_(s[0], env)
             args = [eval_(i, env) for i in s[1:]]
-            return proc(*args)
+            try:
+                result = proc(*args)
+            except ZeroDivisionError:
+                print Fore.RED, 'Dividing by zero yields infinity', Fore.RESET
+                return sys.maxint
+            return result
     except:
         print traceback.format_exc()
         raise Exception()
@@ -156,7 +164,25 @@ def parse_fix(s, prefix=''):
         # print e.loc, e.line, expected
         return parse_fix(s, prefix=prefix + ' ' * 4)
 
-init()
+
+def repl():
+    while True:
+        try:
+            in_ = raw_input('🐍 > ')
+            if in_.strip() == '': 
+                continue
+            elif in_ == '%env':
+                for k, v in global_env.iteritems():
+                    print ' | '.join(map(str, (k.ljust(16) , str(v).ljust(32), type(v))))
+                continue
+            result = eval_(parse_fix(in_))
+            print Fore.GREEN , result , Fore.RESET
+        except KeyboardInterrupt:
+            break
+
+if __name__ == '__main__':
+    init()
+    repl()
 
 for s in good_strings:
     print s
@@ -165,13 +191,3 @@ for s in good_strings:
     #print p
     r = eval_(p)
     print 'RESULT', Fore.GREEN , r , Fore.RESET
-
-def repl():
-    while True:
-        try:
-            in_ = raw_input('🐍  > ')
-            if in_.strip() == '': continue
-            result = eval_(parse_fix(in_))
-            print result
-        except KeyboardInterrupt:
-            break
