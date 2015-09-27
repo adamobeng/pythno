@@ -11,6 +11,7 @@ import operator as pyoperator
 import subprocess
 import os.path
 import sys
+import os
 from random import choice, randint
 
 
@@ -228,6 +229,7 @@ def repl(random=False):
 
 if __name__ == '__main__':
     init()
+    os.system('clear')
     repl()
 
 #for s in bad_strings:
