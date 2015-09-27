@@ -184,10 +184,10 @@ if __name__ == '__main__':
     init()
     repl()
 
-for s in good_strings:
-    print s
-    #p = parse_fix(s)
-    p = parse(s)
-    #print p
-    r = eval_(p)
-    print 'RESULT', Fore.GREEN , r , Fore.RESET
+#for s in good_strings:
+    #print s
+    ##p = parse_fix(s)
+    #p = parse(s)
+    ##print p
+    #r = eval_(p)
+    #print 'RESULT', Fore.GREEN , r , Fore.RESET
