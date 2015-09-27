@@ -58,6 +58,7 @@ def parse(s):
 
 
 def does_parse(s):
+    #print 'does parse?', s
     try:
         Syntax().parseString(s).asList()
         return True
@@ -184,18 +185,18 @@ def parse_fix(s, prefix='', random=False):
             # Add char
             s = s[:e.loc] + expected + s[e.loc:]
             sys.stdout.write('[add char]')
+        elif does_parse(s[:e.loc] + s[e.loc + s[e.loc:].find(' '):]):
+            # Remove word
+            s = s[:e.loc] + s[e.loc + s[e.loc:].find(' '):]
+            sys.stdout.write('[remove word]')
+        elif does_parse(s[:e.loc] + s[e.loc + s[e.loc:].find(' '):]):
+            # Replace word
+            s = s[:e.loc] + expected + s[e.loc + s[e.loc:].find(' '):]
+            sys.stdout.write('[replace word]')
         elif does_parse(s[:e.loc] + s[e.loc + 1:]):
             # Remove char
             s = s[:e.loc] + s[e.loc + 1:]
             sys.stdout.write('[remove char]')
-        elif does_parse(s[:e.loc] + s[e.loc + s[e.loc:].find(' ')]):
-            # Replace word
-            s = s[:e.loc] + expected + s[e.loc + s[e.loc:].find(' ')]
-            sys.stdout.write('[replace word]')
-        elif does_parse(s[:e.loc] + s[e.loc + s[e.loc:].find(' ')]):
-            # Remove word
-            s = s[:e.loc] + s[e.loc + s[e.loc:].find(' ')]
-            sys.stdout.write('[remove word]')
         else:
             # Replace char with something from expected list
             sys.stdout.write('[replace char]')
