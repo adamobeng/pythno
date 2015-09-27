@@ -11,7 +11,8 @@ import operator as pyoperator
 import subprocess
 import os.path
 import sys
-import random
+from random import choice
+
 
 def cowsay(text):
     if os.path.exists('python.cow'):
@@ -22,7 +23,7 @@ def cowsay(text):
 
 def Syntax():
     binary_operator = oneOf('+ - / * max min')
-    define = Literal('define') 
+    define = Literal('define')
     unary_operator = Literal('print') | Literal('cow')
     op = Suppress(Literal('('))
     cp = Suppress(Literal(')'))
@@ -30,7 +31,8 @@ def Syntax():
     var = Word(alphas)
     expr = Forward()
     atom = int_lit | var | Group(expr)
-    expr <<  op + (unary_operator + atom | binary_operator + atom + atom | define + var + atom) + cp
+    expr << op + (unary_operator + atom | binary_operator +
+                  atom + atom | define + var + atom) + cp
     return expr
 
 good_strings = '''(cow 1)
@@ -50,11 +52,13 @@ bad_strings = [
 ]
 test_strings = good_strings + bad_strings
 
+
 def parse(s):
     return Syntax().parseString(s).asList()
 
+
 def does_parse(s):
-    try: 
+    try:
         Syntax().parseString(s).asList()
         return True
     except:
@@ -97,16 +101,17 @@ def eval_(s, env=global_env):
                 return env[s]
             else:
                 # Undeclared variable
-                existing_variables = [k for k, v in env.iteritems() 
-                        if (isinstance(v, int) or isinstance(k, float))]
+                existing_variables = [k for k, v in env.iteritems()
+                                      if (isinstance(v, int) or isinstance(k, float))]
                 if len(existing_variables) == 0:
                     env[s] = 0
                     print Fore.RED, 'Creating new variable "%s=0"' % s, Fore.RESET
                     return 0
                 else:
-                    matches = difflib.get_close_matches(s, existing_variables, n=1, cutoff=0.6)
+                    matches = difflib.get_close_matches(
+                        s, existing_variables, n=1, cutoff=0.6)
                     if len(matches) == 0:
-                        env[s] = 0 
+                        env[s] = 0
                         print Fore.RED, 'Creating new variable "%s=0"' % s, Fore.RESET
                         return 0
                     else:
@@ -114,11 +119,13 @@ def eval_(s, env=global_env):
                         print Fore.RED, 'Replacing variable "%s" with exisitng variable "%s" ' % (s, n), Fore.RESET
                         return env[n]
         elif s[0] == 'define':
+            print 'evaling "%s"' % s
             _, var, exp = s
             val = eval_(exp, env)
             env[var] = val
             return val
         else:
+            print 'evaling "%s"' % s
             proc = eval_(s[0], env)
             args = [eval_(i, env) for i in s[1:]]
             try:
@@ -134,19 +141,20 @@ def eval_(s, env=global_env):
 
 def parse_fix(s, prefix='', random=False):
     if len(prefix) > 8:
-        raw_input()
+        raw_input('Press any key to continue fixing input')
     try:
         parsed = Syntax().parseString(s).asList()
-        if len(prefix) > 0: print prefix + 'parsing "%s" with no error!' % s
+        if len(prefix) > 0:
+            print prefix + 'parsing "%s" with no error!' % s
         return parsed
     except ParseException as e:
-        print prefix + 'parsing "%s"' % s, 
+        print prefix + 'parsing "%s"' % s,
         sys.stdout.write('==')
         expected = re.match('Expected (.*)', e.msg).group(1)
         cats = '(W|Re):\((.*)\)'
         if re.match(cats, expected):
             t, chars = re.match(cats, expected).groups()
-            if t=='Re':
+            if t == 'Re':
                 chars = chars.strip("'")
                 if re.match('[.*]', chars):
                     chars = chars.strip("[]")
@@ -154,10 +162,14 @@ def parse_fix(s, prefix='', random=False):
                 elif '|' in chars:
                     chars = chars.replace('\\\\', '')
                     chars = chars.split('|')
-            #print 'chars', chars
-            expected = random.choose(chars[0])
-            if t == 'W':
-                expected = expected + ' '
+            elif t == 'W':
+                chars = chars.strip('()')
+
+            if random:
+                expected = choice(chars)
+            else:
+                expected = chars[0]
+
         else:
             expected = expected.strip('"')
 
@@ -165,24 +177,24 @@ def parse_fix(s, prefix='', random=False):
         if e.loc == 0 or e.loc == len(s):
             # Add char
             s = s[:e.loc] + expected + s[e.loc:]
-            sys.stdout.write( '[add char]')
-        elif does_parse(s[:e.loc] + s[e.loc+1:]):
+            sys.stdout.write('[add char]')
+        elif does_parse(s[:e.loc] + s[e.loc + 1:]):
             # Remove char
-            s = s[:e.loc] + s[e.loc+1:]
-            sys.stdout.write( '[remove char]')
-        elif does_parse(s[:e.loc] + s[e.loc + s[e.loc:].find(' ' )]):
+            s = s[:e.loc] + s[e.loc + 1:]
+            sys.stdout.write('[remove char]')
+        elif does_parse(s[:e.loc] + s[e.loc + s[e.loc:].find(' ')]):
             # Replace word
-            s = s[:e.loc] + expected + s[e.loc + s[e.loc:].find(' ' )]
-            sys.stdout.write( '[replace word]')
-        elif does_parse(s[:e.loc] + s[e.loc + s[e.loc:].find(' ' )]):
+            s = s[:e.loc] + expected + s[e.loc + s[e.loc:].find(' ')]
+            sys.stdout.write('[replace word]')
+        elif does_parse(s[:e.loc] + s[e.loc + s[e.loc:].find(' ')]):
             # Remove word
-            s = s[:e.loc] + s[e.loc + s[e.loc:].find(' ' )]
-            sys.stdout.write( '[remove word]')
+            s = s[:e.loc] + s[e.loc + s[e.loc:].find(' ')]
+            sys.stdout.write('[remove word]')
         else:
             # Replace char with something from expected list
-            sys.stdout.write( '[replace char]')
+            sys.stdout.write('[replace char]')
             s = s[:e.loc] + expected + s[min(e.loc + 1, len(s)):]
-        #print prefix + 'Exception is', e, e.loc
+        # print prefix + 'Exception is', e, e.loc
         # print e.loc, e.line, expected
         print '==> "%s"' % (Fore.CYAN + s + Fore.RESET,)
         return parse_fix(s, prefix=prefix + ' ' * 4)
@@ -192,34 +204,34 @@ def repl(random=False):
     while True:
         try:
             in_ = raw_input('🐍 > ')
-            if in_.strip() == '': 
+            if in_.strip() == '':
                 continue
             elif in_ == '%env':
                 for k, v in global_env.iteritems():
-                    print ' | '.join(map(str, (k.ljust(16) , str(v).ljust(32), type(v))))
+                    print ' | '.join(map(str, (k.ljust(16), str(v).ljust(32), type(v))))
                 continue
             elif in_ == '%aleatoric':
                 random = not random
                 print 'Aletoric mode: %s' % random
                 continue
-            result = eval_(parse_fix(in_))
-            print Fore.GREEN , result , Fore.RESET
+            result = eval_(parse_fix(in_, random=random))
+            print Fore.GREEN, result, Fore.RESET
         except KeyboardInterrupt:
             break
 
 if __name__ == '__main__':
     init()
-    repl(random=True)
+    repl()
 
 for s in bad_strings:
     print Fore.YELLOW + s + Fore.RESET
     result = eval_(parse_fix(s))
     print result
 
-#for s in good_strings:
-    #print s
+# for s in good_strings:
+    # print s
     ##p = parse_fix(s)
     #p = parse(s)
-    ##print p
+    # print p
     #r = eval_(p)
-    #print 'RESULT', Fore.GREEN , r , Fore.RESET
+    # print 'RESULT', Fore.GREEN , r , Fore.RESET
