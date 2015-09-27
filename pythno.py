@@ -11,7 +11,7 @@ import operator as pyoperator
 import subprocess
 import os.path
 import sys
-from random import choice
+from random import choice, randint
 
 
 def cowsay(text):
@@ -91,7 +91,7 @@ def atomize(i):
 # http://norvig.com/lispy.html
 
 
-def eval_(s, env=global_env):
+def eval_(s, env=global_env, random=False):
     try:
         s = atomize(s)
         if isinstance(s, int) or isinstance(s, float):
@@ -102,30 +102,36 @@ def eval_(s, env=global_env):
             else:
                 # Undeclared variable
                 existing_variables = [k for k, v in env.iteritems()
-                                      if (isinstance(v, int) or isinstance(k, float))]
+                                      if (isinstance(v, int) or isinstance(v, float))]
                 if len(existing_variables) == 0:
                     env[s] = 0
                     print Fore.RED, 'Creating new variable "%s=0"' % s, Fore.RESET
                     return 0
                 else:
                     matches = difflib.get_close_matches(
-                        s, existing_variables, n=1, cutoff=0.6)
+                        s, existing_variables, n=1, cutoff=0.4)
                     if len(matches) == 0:
-                        env[s] = 0
+                        if random:
+                            env[s] = randint(0, 10)
+                        else:
+                            env[s] = 0
                         print Fore.RED, 'Creating new variable "%s=0"' % s, Fore.RESET
                         return 0
                     else:
-                        n = matches[0]
+                        if random:
+                            n = choice(matches)
+                        else:
+                            n = matches[0]
                         print Fore.RED, 'Replacing variable "%s" with exisitng variable "%s" ' % (s, n), Fore.RESET
                         return env[n]
         elif s[0] == 'define':
-            print 'evaling "%s"' % s
+            #print 'evaling "%s"' % s
             _, var, exp = s
             val = eval_(exp, env)
             env[var] = val
             return val
         else:
-            print 'evaling "%s"' % s
+            #print 'evaling "%s"' % s
             proc = eval_(s[0], env)
             args = [eval_(i, env) for i in s[1:]]
             try:
@@ -203,7 +209,7 @@ def parse_fix(s, prefix='', random=False):
 def repl(random=False):
     while True:
         try:
-            in_ = raw_input('🐍 > ')
+            in_ = raw_input('pythno 🐍 > ')
             if in_.strip() == '':
                 continue
             elif in_ == '%env':
@@ -223,10 +229,10 @@ if __name__ == '__main__':
     init()
     repl()
 
-for s in bad_strings:
-    print Fore.YELLOW + s + Fore.RESET
-    result = eval_(parse_fix(s))
-    print result
+#for s in bad_strings:
+    #print Fore.YELLOW + s + Fore.RESET
+    #result = eval_(parse_fix(s))
+    #print result
 
 # for s in good_strings:
     # print s
