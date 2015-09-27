@@ -11,6 +11,7 @@ import operator as pyoperator
 import subprocess
 import os.path
 import sys
+import random
 
 def cowsay(text):
     if os.path.exists('python.cow'):
@@ -52,6 +53,12 @@ test_strings = good_strings + bad_strings
 def parse(s):
     return Syntax().parseString(s).asList()
 
+def does_parse(s):
+    try: 
+        Syntax().parseString(s).asList()
+        return True
+    except:
+        return False
 
 global_env = {
     '+':  pyoperator.add,
@@ -125,15 +132,16 @@ def eval_(s, env=global_env):
         raise Exception()
 
 
-def parse_fix(s, prefix=''):
+def parse_fix(s, prefix='', random=False):
     if len(prefix) > 8:
         raw_input()
     try:
         parsed = Syntax().parseString(s).asList()
-        #print 'with no error!'
+        if len(prefix) > 0: print prefix + 'parsing "%s" with no error!' % s
         return parsed
     except ParseException as e:
-        print prefix + 'parsing', s,
+        print prefix + 'parsing "%s"' % s, 
+        sys.stdout.write('==')
         expected = re.match('Expected (.*)', e.msg).group(1)
         cats = '(W|Re):\((.*)\)'
         if re.match(cats, expected):
@@ -147,25 +155,40 @@ def parse_fix(s, prefix=''):
                     chars = chars.replace('\\\\', '')
                     chars = chars.split('|')
             #print 'chars', chars
-            expected = chars[0]
+            expected = random.choose(chars[0])
             if t == 'W':
                 expected = expected + ' '
         else:
             expected = expected.strip('"')
+
+        #  Transformations
         if e.loc == 0 or e.loc == len(s):
             # Add char
             s = s[:e.loc] + expected + s[e.loc:]
+            sys.stdout.write( '[add char]')
+        elif does_parse(s[:e.loc] + s[e.loc+1:]):
+            # Remove char
+            s = s[:e.loc] + s[e.loc+1:]
+            sys.stdout.write( '[remove char]')
+        elif does_parse(s[:e.loc] + s[e.loc + s[e.loc:].find(' ' )]):
+            # Replace word
+            s = s[:e.loc] + expected + s[e.loc + s[e.loc:].find(' ' )]
+            sys.stdout.write( '[replace word]')
+        elif does_parse(s[:e.loc] + s[e.loc + s[e.loc:].find(' ' )]):
+            # Remove word
+            s = s[:e.loc] + s[e.loc + s[e.loc:].find(' ' )]
+            sys.stdout.write( '[remove word]')
         else:
-            # Replace char
+            # Replace char with something from expected list
+            sys.stdout.write( '[replace char]')
             s = s[:e.loc] + expected + s[min(e.loc + 1, len(s)):]
-        # Also try removing char, replacing word
         #print prefix + 'Exception is', e, e.loc
-        print 'to "%s"' % (Fore.CYAN + s + Fore.RESET,)
         # print e.loc, e.line, expected
+        print '==> "%s"' % (Fore.CYAN + s + Fore.RESET,)
         return parse_fix(s, prefix=prefix + ' ' * 4)
 
 
-def repl():
+def repl(random=False):
     while True:
         try:
             in_ = raw_input('🐍 > ')
@@ -175,6 +198,10 @@ def repl():
                 for k, v in global_env.iteritems():
                     print ' | '.join(map(str, (k.ljust(16) , str(v).ljust(32), type(v))))
                 continue
+            elif in_ == '%aleatoric':
+                random = not random
+                print 'Aletoric mode: %s' % random
+                continue
             result = eval_(parse_fix(in_))
             print Fore.GREEN , result , Fore.RESET
         except KeyboardInterrupt:
@@ -182,7 +209,12 @@ def repl():
 
 if __name__ == '__main__':
     init()
-    repl()
+    repl(random=True)
+
+for s in bad_strings:
+    print Fore.YELLOW + s + Fore.RESET
+    result = eval_(parse_fix(s))
+    print result
 
 #for s in good_strings:
     #print s
